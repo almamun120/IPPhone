@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+        App-internal files directory.
+        Covers: context.filesDir and subdirectories
+        e.g. /data/user/0/com.ipphone/files/received_files/
+    -->
+    <files-path
+        name="internal_files"
+        path="." />
+
+    <!--
+        App cache directory.
+        Covers: context.cacheDir and subdirectories
+        e.g. /data/user/0/com.ipphone/cache/voice_notes/
+    -->
+    <cache-path
+        name="cache_files"
+        path="." />
+
+    <!--
+        App-specific external files directory (no permission needed to read).
+        Covers: context.getExternalFilesDir(null) and subdirectories
+        e.g. /sdcard/Android/data/com.ipphone/files/IPPhone/
+    -->
+    <external-files-path
+        name="external_app_files"
+        path="." />
+
+    <!--
+        Public external storage root.
+        Covers: Environment.getExternalStorageDirectory() and subdirectories
+        e.g. /sdcard/Download/  /sdcard/DCIM/  /sdcard/Pictures/
+        Required for files picked from gallery / file manager.
+    -->
+    <external-path
+        name="external_storage"
+        path="." />
+
+</paths>

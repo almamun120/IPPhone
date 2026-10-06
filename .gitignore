@@ -1,0 +1,18 @@
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.DS_Store
+/build/
+/app/build/
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Build outputs — never commit these; CI builds them (see .github/workflows/android.yml)
+*.apk
+*.aab
+/app/release/
+/app/debug/
+*.zip
