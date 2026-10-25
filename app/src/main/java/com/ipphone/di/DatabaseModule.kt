@@ -15,6 +15,16 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
+
+    /** v3: composite index so "newest N messages of a chat" never scans the whole table. */
+    private val MIGRATION_2_3 = object : androidx.room.migration.Migration(2, 3) {
+        override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_messages_conversation_id_created_at` " +
+                    "ON `messages` (`conversation_id`, `created_at`)"
+            )
+        }
+    }
     
     @Provides
     @Singleton
@@ -25,7 +35,9 @@ object DatabaseModule {
             context,
             IPPhoneDatabase::class.java,
             Constants.DATABASE_NAME
-        ).fallbackToDestructiveMigration()
+        ).addMigrations(MIGRATION_2_3)
+            // Safety net only for versions without a migration path.
+            .fallbackToDestructiveMigration()
             .build()
     }
     

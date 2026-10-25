@@ -22,6 +22,7 @@ import com.ipphone.presentation.navigation.Screen
 import com.ipphone.presentation.theme.IPPhoneTheme
 import com.ipphone.service.CallService
 import com.ipphone.service.NetworkService
+import com.ipphone.utils.AppDiagnostics
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -58,8 +59,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AppDiagnostics.onActivityCreated()
 
-        requestRequiredPermissions()
+        // Only on a genuine first launch of this activity — not on every re-creation.
+        if (savedInstanceState == null) requestRequiredPermissions()
 
         setContent {
             IPPhoneTheme {
@@ -182,7 +185,15 @@ class MainActivity : ComponentActivity() {
             permissions.add(Manifest.permission.BLUETOOTH_CONNECT)
         }
 
-        permissionLauncher.launch(permissions.toTypedArray())
+        val missing = permissions.filter {
+            ContextCompat.checkSelfPermission(this, it) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        }
+        if (missing.isEmpty()) {
+            startNetworkService()
+            checkOverlayPermission()
+        } else {
+            permissionLauncher.launch(missing.toTypedArray())
+        }
     }
 
     private fun startNetworkService() {
@@ -191,7 +202,11 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun checkOverlayPermission() {
+        // Ask only once; re-opening Settings on every launch is what kicks the user out of the app.
+        val prefs = getSharedPreferences("app_flags", MODE_PRIVATE)
+        if (prefs.getBoolean("overlay_prompted", false)) return
         if (!android.provider.Settings.canDrawOverlays(this)) {
+            prefs.edit().putBoolean("overlay_prompted", true).apply()
             val intent = Intent(
                 android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                 android.net.Uri.parse("package:$packageName")

@@ -37,14 +37,14 @@ fun IncomingCallScreen(
         try {
             val popped = navController.popBackStack()
             if (!popped) {
-                navController.navigate("paired") {
+                navController.navigate("contacts") {
                     launchSingleTop = true
                     popUpTo(0) { inclusive = true }
                 }
             }
         } catch (e: Exception) {
             try {
-                navController.navigate("paired") {
+                navController.navigate("contacts") {
                     launchSingleTop = true
                     popUpTo(0) { inclusive = true }
                 }

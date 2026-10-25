@@ -50,7 +50,9 @@ import com.ipphone.presentation.screens.dialpad.DialpadScreen
 import com.ipphone.presentation.screens.filemanager.FileManagerScreen
 import com.ipphone.presentation.screens.nearby.NearbyScreen
 import com.ipphone.presentation.screens.onboarding.OnboardingScreen
-import com.ipphone.presentation.screens.paired.PairedScreen
+import com.ipphone.presentation.screens.contacts.ContactsScreen
+import com.ipphone.presentation.screens.diagnostics.DiagnosticsScreen
+import com.ipphone.presentation.screens.quickconnect.QuickConnectScreen
 import com.ipphone.presentation.screens.profile.ProfileScreen
 import com.ipphone.presentation.screens.settings.SettingsScreen
 import com.ipphone.presentation.screens.splash.SplashScreen
@@ -65,7 +67,7 @@ sealed class Screen(val route: String) {
     object Onboarding  : Screen("onboarding")
     object Dialpad     : Screen("dialpad")
     object Nearby      : Screen("nearby")
-    object Paired      : Screen("paired")
+    object Contacts    : Screen("contacts")
     object Blocked     : Screen("blocked")
     object CallLogs    : Screen("call_logs")
     object Settings    : Screen("settings")
@@ -88,6 +90,8 @@ sealed class Screen(val route: String) {
         fun createRoute(callId: String) = "incoming_call/$callId"
     }
     object ActiveTransfers : Screen("active_transfers")
+    object QuickConnect    : Screen("quick_connect")
+    object Diagnostics     : Screen("diagnostics")
     object WifiDirect      : Screen("wifi_direct")
 }
 
@@ -101,7 +105,7 @@ data class BottomNavItem(
 
 private fun NavHostController.navigateToHomeAfterCall() {
     try {
-        navigate(Screen.Paired.route) {
+        navigate(Screen.Contacts.route) {
             popUpTo(0) { inclusive = true }
             launchSingleTop = true
         }
@@ -213,7 +217,7 @@ fun AppNavigation(
             text = {
                 Text(
                     "${offer.files.size} file(s) · ${offer.totalSize.toFormattedSize()}\n" +
-                            "from a paired device"
+                            "from a nearby device"
                 )
             },
             confirmButton = {
@@ -250,13 +254,13 @@ fun AppNavigation(
     val bottomNavItems = listOf(
         BottomNavItem(Screen.Dialpad,  "Dial",     Icons.Filled.Dialpad, Icons.Outlined.Dialpad),
         BottomNavItem(Screen.Nearby,   "Nearby",   Icons.Filled.Radar,   Icons.Outlined.Radar),
-        BottomNavItem(Screen.Paired,   "Chats",    Icons.Filled.People,  Icons.Outlined.People,  unreadMessageCount),
+        BottomNavItem(Screen.Contacts,   "Chats",    Icons.Filled.People,  Icons.Outlined.People,  unreadMessageCount),
         BottomNavItem(Screen.CallLogs, "Calls",    Icons.Filled.History, Icons.Outlined.History, missedCallCount),
         BottomNavItem(Screen.Settings, "Settings", Icons.Filled.Settings, Icons.Outlined.Settings)
     )
 
     val bottomNavRoutes = setOf(
-        Screen.Dialpad.route, Screen.Nearby.route, Screen.Paired.route, Screen.CallLogs.route,
+        Screen.Dialpad.route, Screen.Nearby.route, Screen.Contacts.route, Screen.CallLogs.route,
         Screen.Settings.route
     )
 
@@ -318,7 +322,7 @@ fun AppNavigation(
                             val selected = currentDestination?.hierarchy?.any {
                                 val route = it.route
                                 route == item.screen.route ||
-                                        (item.screen == Screen.Paired && route?.startsWith("chat/") == true)
+                                        (item.screen == Screen.Contacts && route?.startsWith("chat/") == true)
                             } == true
 
                             NavigationBarItem(
@@ -387,7 +391,7 @@ fun AppNavigation(
                         }
                     },
                     onNavigateToMain = {
-                        navController.navigate(Screen.Paired.route) {
+                        navController.navigate(Screen.Contacts.route) {
                             popUpTo(Screen.Splash.route) { inclusive = true }
                         }
                     }
@@ -396,7 +400,7 @@ fun AppNavigation(
 
             composable(Screen.Onboarding.route) {
                 OnboardingScreen(onComplete = {
-                    navController.navigate(Screen.Paired.route) {
+                    navController.navigate(Screen.Contacts.route) {
                         popUpTo(Screen.Onboarding.route) { inclusive = true }
                     }
                 })
@@ -404,7 +408,7 @@ fun AppNavigation(
 
             composable(Screen.Nearby.route)   { NearbyScreen(navController = navController) }
             composable(Screen.Dialpad.route)  { DialpadScreen(navController = navController) }
-            composable(Screen.Paired.route)   { PairedScreen(navController = navController) }
+            composable(Screen.Contacts.route)   { ContactsScreen(navController = navController) }
             composable(Screen.CallLogs.route) { CallLogsScreen(navController = navController) }
             composable(Screen.Blocked.route)  { BlockedScreen(navController = navController) }
             composable(Screen.Settings.route) { SettingsScreen(navController = navController) }
@@ -463,6 +467,9 @@ fun AppNavigation(
                 val callId = back.arguments?.getString("callId")
                 if (callId != null) IncomingCallScreen(callId = callId, navController = navController)
             }
+
+            composable(Screen.QuickConnect.route) { QuickConnectScreen(navController = navController) }
+            composable(Screen.Diagnostics.route)  { DiagnosticsScreen(navController = navController) }
 
             composable(Screen.ActiveTransfers.route) {
                 com.ipphone.presentation.screens.transfer.ActiveTransfersScreen(navController = navController)

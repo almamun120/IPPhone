@@ -151,6 +151,11 @@ class NetworkService : Service() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
         val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
         if (pm.isIgnoringBatteryOptimizations(packageName)) return
+        // Ask once only: this service restarts often, and re-opening the system dialog each time
+        // throws the user out of the app.
+        val flags = getSharedPreferences("app_flags", Context.MODE_PRIVATE)
+        if (flags.getBoolean("battery_prompted", false)) return
+        flags.edit().putBoolean("battery_prompted", true).apply()
         try {
             startActivity(
                 Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {

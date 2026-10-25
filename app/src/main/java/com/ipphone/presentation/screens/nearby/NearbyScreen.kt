@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Stop
 import com.ipphone.presentation.navigation.Screen
@@ -30,6 +31,9 @@ fun NearbyScreen(
             TopAppBar(
                 title = { Text("Nearby Devices") },
                 actions = {
+                    IconButton(onClick = { navController.navigate(Screen.QuickConnect.route) }) {
+                        Icon(Icons.Default.QrCodeScanner, contentDescription = "Quick Connect (QR)")
+                    }
                     if (uiState.isScanning) {
                         IconButton(onClick = { viewModel.stopScan() }) {
                             Icon(Icons.Default.Stop, contentDescription = "Stop Scan")
@@ -131,8 +135,3 @@ data class NearbyDevice(
     val port: Int
 )
 
-data class PairRequest(
-    val senderId: String,
-    val senderName: String,
-    val senderProfile: String?
-)

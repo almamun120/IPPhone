@@ -40,7 +40,7 @@ val onboardingPages = listOf(
     OnboardingPage(
         icon = Icons.Default.Chat,
         title = "Instant Messaging",
-        description = "Send messages, photos, and files instantly to paired devices."
+        description = "Send messages, photos, and files instantly to nearby devices."
     ),
     OnboardingPage(
         icon = Icons.Default.Call,

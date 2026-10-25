@@ -106,7 +106,6 @@ class MessagingEngine @Inject constructor(
                 deviceName = msg.deviceName,
                 ipAddress = null, // PresenceManager/Discovery will eventually fill this if via UDP
                 tcpPort = msg.tcpPort,
-                pairingState = com.ipphone.domain.model.PairingState.NONE,
                 createdAt = now,
                 updatedAt = now,
                 lastSeen = now
@@ -143,7 +142,6 @@ class MessagingEngine @Inject constructor(
             val newUser = com.ipphone.domain.model.User(
                 uuid = senderId,
                 deviceName = "Unknown Device",
-                pairingState = com.ipphone.domain.model.PairingState.NONE,
                 createdAt = System.currentTimeMillis()
             )
             userRepository.saveUser(newUser)

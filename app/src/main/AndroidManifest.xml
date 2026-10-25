@@ -60,6 +60,14 @@
     <uses-feature android:name="android.hardware.camera"      android:required="false" />
     <uses-feature android:name="android.hardware.microphone"  android:required="false" />
 
+    <!-- Lets the file browser list installed apps (Apps tab) on Android 11+ -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
     <application
         android:name=".IPPhoneApp"
         android:allowBackup="true"
@@ -76,6 +84,7 @@
             android:exported="true"
             android:theme="@style/Theme.IPPhone"
             android:launchMode="singleTop"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|uiMode|density|layoutDirection|locale|fontScale"
             android:showWhenLocked="true"
             android:turnScreenOn="true"
             android:windowSoftInputMode="adjustResize">

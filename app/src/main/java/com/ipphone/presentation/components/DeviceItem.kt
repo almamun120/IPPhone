@@ -26,7 +26,7 @@ import com.ipphone.domain.model.User
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun PairedDeviceItem(
+fun ContactItem(
     user: User,
     lastMessage: String?,
     isTyping: Boolean = false,

@@ -30,7 +30,7 @@ import timber.log.Timber
 // call or incoming-call screen can be revealed underneath.
 private fun NavController.goHomeAfterCall() {
     try {
-        navigate("paired") {
+        navigate("contacts") {
             popUpTo(0) { inclusive = true }
             launchSingleTop = true
         }
@@ -73,9 +73,9 @@ fun CallScreen(
     //   Even after AppNavigation uses popUpTo(IncomingCall) { inclusive=true },
     //   timing races mean IncomingCallScreen can still be present.
     //
-    // Fix: on any terminal state, navigate explicitly to "paired" with
+    // Fix: on any terminal state, navigate explicitly to "contacts" with
     //   popUpTo(0) { inclusive=true } which wipes the entire back stack and
-    //   puts Paired on top. This is guaranteed to work regardless of what
+    //   puts Contacts on top. This is guaranteed to work regardless of what
     //   was underneath CallScreen.
     LaunchedEffect(uiState.callState) {
         if (hasDismissed) return@LaunchedEffect

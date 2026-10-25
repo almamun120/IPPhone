@@ -18,6 +18,7 @@ import androidx.room.PrimaryKey
     ],
     indices = [
         Index(value = ["conversation_id"]),
+        Index(value = ["conversation_id", "created_at"]),
         Index(value = ["created_at"]),
         Index(value = ["status"])
     ]

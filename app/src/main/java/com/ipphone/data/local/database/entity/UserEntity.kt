@@ -22,8 +22,10 @@ data class UserEntity(
     @ColumnInfo(name = "tcp_port")
     val tcpPort: Int,
     
+    // Legacy column from the old pairing system. Kept only so existing installs need no
+    // database migration; nothing reads it any more.
     @ColumnInfo(name = "pairing_state")
-    val pairingState: String,
+    val pairingState: String = "NONE",
     
     @ColumnInfo(name = "is_blocked")
     val isBlocked: Boolean = false,

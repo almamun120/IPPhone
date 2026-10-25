@@ -177,6 +177,28 @@ fun SettingsScreen(
 
             item {
                 SettingsItem(
+                    icon     = Icons.Default.QrCodeScanner,
+                    title    = "Quick Connect (QR)",
+                    subtitle = "Join another phone by scanning a QR code — no Settings needed",
+                    onClick  = {
+                        navController.navigate(com.ipphone.presentation.navigation.Screen.QuickConnect.route)
+                    }
+                )
+            }
+
+            item {
+                SettingsItem(
+                    icon     = Icons.Default.BugReport,
+                    title    = "Diagnostics",
+                    subtitle = "IP, ports, peers, speed test and why the app restarted",
+                    onClick  = {
+                        navController.navigate(com.ipphone.presentation.navigation.Screen.Diagnostics.route)
+                    }
+                )
+            }
+
+            item {
+                SettingsItem(
                     icon     = Icons.Default.Wifi,
                     title    = "Wi-Fi Settings",
                     subtitle = "Open system Wi-Fi configuration",
@@ -220,7 +242,7 @@ fun SettingsScreen(
                 SettingsToggleItem(
                     icon            = Icons.Default.NetworkCheck,
                     title           = "Auto-accept files",
-                    subtitle        = "Automatically accept incoming file transfers from paired devices",
+                    subtitle        = "Automatically accept incoming file transfers from nearby devices",
                     checked         = uiState.autoAcceptFiles,
                     onCheckedChange = { viewModel.setAutoAcceptFiles(it) }
                 )

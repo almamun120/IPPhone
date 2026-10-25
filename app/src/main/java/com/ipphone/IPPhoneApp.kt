@@ -9,6 +9,7 @@ import coil.ImageLoader
 import coil.ImageLoaderFactory
 import coil.decode.VideoFrameDecoder
 import dagger.hilt.android.HiltAndroidApp
+import com.ipphone.utils.AppDiagnostics
 import timber.log.Timber
 
 @HiltAndroidApp
@@ -18,6 +19,14 @@ class IPPhoneApp : Application(), ImageLoaderFactory {
         super.onCreate()
         if (BuildConfig.DEBUG) Timber.plant(Timber.DebugTree())
         createNotificationChannels()
+
+        // Remember crashes so the Diagnostics screen can explain unexpected restarts.
+        AppDiagnostics.onProcessStart(this)
+        val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, error ->
+            try { AppDiagnostics.recordCrash(this, thread, error) } catch (_: Throwable) {}
+            previousHandler?.uncaughtException(thread, error)
+        }
     }
 
     override fun newImageLoader(): ImageLoader {

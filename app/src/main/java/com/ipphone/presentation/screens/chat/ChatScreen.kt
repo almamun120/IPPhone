@@ -152,9 +152,16 @@ fun ChatScreen(
     }
 
     var isFirstLoad by remember(userId) { mutableStateOf(true) }
+    // True right after "Load earlier messages": the list grows at the top, so do not jump to the bottom.
+    var loadingOlder by remember(userId) { mutableStateOf(false) }
+    val showLoadEarlier = uiState.hasMoreMessages && searchQuery.isBlank()
     LaunchedEffect(groupedMessages) {
+        if (loadingOlder) {
+            loadingOlder = false
+            return@LaunchedEffect
+        }
         if (groupedMessages.isNotEmpty() && !isSearchActive) {
-            val totalItems = groupedMessages.sumOf { it.second.size + 1 }
+            val totalItems = groupedMessages.sumOf { it.second.size + 1 } + (if (showLoadEarlier) 1 else 0)
             if (totalItems > 0) {
                 if (isFirstLoad) {
                     listState.scrollToItem(totalItems - 1)
@@ -357,6 +364,16 @@ fun ChatScreen(
                 contentPadding      = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
+                if (showLoadEarlier) {
+                    item(key = "load_earlier") {
+                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            TextButton(onClick = {
+                                loadingOlder = true
+                                viewModel.loadMoreMessages()
+                            }) { Text("Load earlier messages") }
+                        }
+                    }
+                }
                 groupedMessages.forEach { (dateLabel, msgs) ->
                     item(key = "date_$dateLabel") {
                         DateSeparator(label = dateLabel)

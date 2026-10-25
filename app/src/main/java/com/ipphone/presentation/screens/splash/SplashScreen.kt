@@ -28,6 +28,9 @@ fun SplashScreen(
 ) {
     val isOnboardingCompleted by viewModel.isOnboardingCompleted.collectAsState()
 
+    // Already shown in this process? Then do not replay it (see SplashGate).
+    val fastPass = remember { SplashGate.shownThisProcess }
+
     var startAnimation by remember { mutableStateOf(false) }
 
     val alphaAnim = animateFloatAsState(
@@ -52,12 +55,19 @@ fun SplashScreen(
     // the 2-second delay from firing before the value is ready.
     LaunchedEffect(isOnboardingCompleted) {
         if (isOnboardingCompleted == null) return@LaunchedEffect
-        delay(2000)
+        if (!fastPass) delay(2000)
+        SplashGate.shownThisProcess = true
         when (isOnboardingCompleted) {
             true  -> onNavigateToMain()
             false -> onNavigateToOnboarding()
             null  -> Unit
         }
+    }
+
+    if (fastPass) {
+        // Invisible pass-through: just the normal background for a few milliseconds.
+        Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
+        return
     }
 
     Box(

@@ -14,9 +14,6 @@ object PacketSerializer {
     
     fun serialize(message: ProtocolMessage): ByteArray {
         val json = when (message) {
-            is PairRequestMessage -> protocolJson.encodeToString(message)
-            is PairResponseMessage -> protocolJson.encodeToString(message)
-            is UnpairMessage -> protocolJson.encodeToString(message)
             is HeartbeatMessage -> protocolJson.encodeToString(message)
             is ChatMessage -> protocolJson.encodeToString(message)
             is MessageReceiptMessage -> protocolJson.encodeToString(message)
@@ -74,9 +71,8 @@ object PacketSerializer {
             val type = jsonObject["type"]?.jsonPrimitive?.content ?: return null
             
             when (type) {
-                "pair_request" -> protocolJson.decodeFromString<PairRequestMessage>(json)
-                "pair_response" -> protocolJson.decodeFromString<PairResponseMessage>(json)
-                "unpair" -> protocolJson.decodeFromString<UnpairMessage>(json)
+                // Legacy pairing messages from older app versions: silently ignored.
+                "pair_request", "pair_response", "unpair" -> null
                 "heartbeat" -> protocolJson.decodeFromString<HeartbeatMessage>(json)
                 "chat_message" -> protocolJson.decodeFromString<ChatMessage>(json)
                 "message_receipt" -> protocolJson.decodeFromString<MessageReceiptMessage>(json)

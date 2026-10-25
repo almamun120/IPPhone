@@ -12,17 +12,8 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * Holds badge counts AND global pairing-request events that must be visible
- * from every tab (not just the Nearby tab).
- *
- * FIX: Previously PairingManager.pairingEvents was only collected inside
- * NearbyViewModel, which is only alive when the Nearby tab is selected.
- * Events arriving on any other tab were silently dropped — the user never
- * saw the pairing dialog.
- *
- * Fix: Collect pairingEvents here (in a ViewModel scoped to the NavHost,
- * so it lives for the entire session) and expose a SharedFlow that
- * AppNavigation listens to so it can show the global AlertDialog.
+ * Holds the badge counts (missed calls, unread messages, active transfers) that must be
+ * visible from every tab. Scoped to the NavHost so it lives for the whole session.
  */
 @HiltViewModel
 class NavigationViewModel @Inject constructor(

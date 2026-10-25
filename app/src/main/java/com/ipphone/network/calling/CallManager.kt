@@ -643,8 +643,7 @@ class CallManager @Inject constructor(
         var user = userRepository.getUserByIdOnce(resolvedPeerId)
         if (user == null) {
             val nu = com.ipphone.domain.model.User(
-                uuid = resolvedPeerId, deviceName = resolvedPeerId,
-                pairingState = com.ipphone.domain.model.PairingState.NONE
+                uuid = resolvedPeerId, deviceName = resolvedPeerId
             )
             userRepository.saveUser(nu); user = nu
         }
@@ -756,8 +755,7 @@ class CallManager @Inject constructor(
         var user = userRepository.getUserByIdOnce(senderId)
         if (user == null) {
             val nu = com.ipphone.domain.model.User(
-                uuid = senderId, deviceName = senderId,
-                pairingState = com.ipphone.domain.model.PairingState.NONE
+                uuid = senderId, deviceName = senderId
             )
             userRepository.saveUser(nu); user = nu
         }

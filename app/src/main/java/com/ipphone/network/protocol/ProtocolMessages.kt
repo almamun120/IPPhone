@@ -17,43 +17,6 @@ sealed class ProtocolMessage {
     abstract val timestamp: Long
 }
 
-// ============ PAIRING MESSAGES ============
-
-@Serializable
-@SerialName("pair_request")
-data class PairRequestMessage(
-    override val type: String = "pair_request",
-    override val senderId: String,
-    override val timestamp: Long = System.currentTimeMillis(),
-    val senderName: String,
-    val senderProfile: String? = null
-) : ProtocolMessage()
-
-@Serializable
-@SerialName("pair_response")
-data class PairResponseMessage(
-    override val type: String = "pair_response",
-    override val senderId: String,
-    override val timestamp: Long = System.currentTimeMillis(),
-    val status: PairResponseStatus,
-    val responderName: String? = null,
-    val responderProfile: String? = null
-) : ProtocolMessage()
-
-@Serializable
-enum class PairResponseStatus {
-    @SerialName("accepted") ACCEPTED,
-    @SerialName("rejected") REJECTED
-}
-
-@Serializable
-@SerialName("unpair")
-data class UnpairMessage(
-    override val type: String = "unpair",
-    override val senderId: String,
-    override val timestamp: Long = System.currentTimeMillis()
-) : ProtocolMessage()
-
 // ============ PRESENCE MESSAGES ============
 
 @Serializable

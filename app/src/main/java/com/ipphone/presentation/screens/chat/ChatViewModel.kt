@@ -35,9 +35,12 @@ data class ChatUiState(
     val isTyping: Boolean            = false,
     val isSendingAttachment: Boolean = false,
     val isUserBlocked: Boolean       = false,          // ← NEW
+    val hasMoreMessages: Boolean     = false,
     val transfers: Map<String, FileTransfer> = emptyMap(),
     val error: String?               = null
 )
+
+private const val MESSAGE_PAGE_SIZE = 100
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
@@ -53,6 +56,9 @@ class ChatViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
+
+    // Windowed loading: only the newest N messages are observed; "Load earlier" grows the window.
+    private val windowSize = MutableStateFlow(MESSAGE_PAGE_SIZE)
 
     private var currentUserId: String? = null
     private var transferLoadJob: Job?  = null
@@ -113,6 +119,7 @@ class ChatViewModel @Inject constructor(
 
     // ── Load chat ─────────────────────────────────────────────
 
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun loadChat(userId: String) {
         currentUserId = userId
         setActiveConversation()
@@ -124,10 +131,19 @@ class ChatViewModel @Inject constructor(
             }
         }
 
-        // Messages
+        // Messages (newest window only)
+        windowSize.value = MESSAGE_PAGE_SIZE
         viewModelScope.launch {
-            messageRepository.getMessagesForConversation(userId).collect { messages ->
-                _uiState.update { it.copy(isLoading = false, messages = messages) }
+            windowSize.flatMapLatest { limit ->
+                messageRepository.getRecentMessages(userId, limit)
+            }.collect { messages ->
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        messages = messages,
+                        hasMoreMessages = messages.size >= windowSize.value
+                    )
+                }
                 val unread = messages.filter {
                     it.senderId == userId && it.status != MessageStatus.READ
                 }
@@ -139,6 +155,11 @@ class ChatViewModel @Inject constructor(
         }
 
         refreshTransfers(userId)
+    }
+
+    /** Show 100 more older messages. */
+    fun loadMoreMessages() {
+        windowSize.update { it + MESSAGE_PAGE_SIZE }
     }
 
     private fun refreshTransfers(userId: String) {
@@ -193,13 +214,23 @@ class ChatViewModel @Inject constructor(
                 }
 
                 files.filter { it.size <= MAX_FILE_SIZE }.forEach { attachment ->
-                    val msgType = mimeToMessageType(attachment.mimeType, category)
+                    // Photos picked as "Image" are shrunk first; everything else is sent untouched.
+                    val compressed = if (category == AttachmentCategory.IMAGE) {
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                            com.ipphone.utils.ImageCompressor.compressForChat(
+                                context, attachment.uri, attachment.name, attachment.mimeType, attachment.size
+                            )
+                        }
+                    } else null
+
+                    val sendMime = compressed?.mimeType ?: attachment.mimeType
+                    val msgType = mimeToMessageType(sendMime, category)
                     messagingEngine.sendMediaMessage(
                         receiverId  = userId,
-                        uri         = attachment.uri,
-                        fileName    = attachment.name,
-                        fileSize    = attachment.size,
-                        mimeType    = attachment.mimeType,
+                        uri         = compressed?.uri ?: attachment.uri,
+                        fileName    = compressed?.name ?: attachment.name,
+                        fileSize    = compressed?.size ?: attachment.size,
+                        mimeType    = sendMime,
                         messageType = msgType,
                         durationMs  = attachment.durationMs
                     )

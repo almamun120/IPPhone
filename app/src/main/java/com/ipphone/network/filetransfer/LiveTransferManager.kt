@@ -31,7 +31,8 @@ class LiveTransferManager @Inject constructor(
     private val fileTransferRepository: FileTransferRepository,
     private val preferencesManager: PreferencesManager,
     private val userDao: com.ipphone.data.local.database.dao.UserDao,
-    private val statsTracker: TransferStatsTracker
+    private val statsTracker: TransferStatsTracker,
+    private val core: TransferCore
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -247,45 +248,24 @@ class LiveTransferManager @Inject constructor(
         fileTransferRepository.markAsStarted(transferId, TransferStatus.ACTIVE)
 
         // Start the bulk data server and tell the sender where to stream the bytes.
-        engine.registerIncoming(transferId) { fileId -> resolveSavePath(transferId, fileId) }
-        val dataPort = engine.ensureDataServer()
+        val dataPort = core.prepareIncoming(transferId) { fileId -> resolveSavePath(transferId, fileId) }
         if (dataPort <= 0) {
-            fileTransferRepository.markAsFailed(transferId, "Cannot open data port")
             activeTransferIds.remove(transferId)
-            connectionManager.sendMessage(
-                transfer.peerId,
-                FileResponseMessage(
-                    senderId   = preferencesManager.getDeviceUuid(),
-                    transferId = transferId,
-                    accepted   = false,
-                    reason     = "Receiver cannot open a data port"
-                )
-            )
+            core.sendReject(transfer.peerId, transferId, "Receiver cannot open a data port")
+            core.fail(transferId, "Cannot open data port")
             _transferEvents.emit(TransferEvent.Failed(transferId, "Cannot open data port"))
             return
         }
 
-        val response = FileResponseMessage(
-            senderId   = preferencesManager.getDeviceUuid(),
-            transferId = transferId,
-            accepted   = true,
-            dataPort   = dataPort
-        )
-        connectionManager.sendMessage(transfer.peerId, response)
+        core.sendAccept(transfer.peerId, transferId, dataPort)
 
         Timber.d("Accepted live transfer $transferId — ready for ${transfer.files.size} file(s)")
     }
 
     suspend fun rejectTransfer(transferId: String, reason: String? = null) {
         val transfer = fileTransferRepository.getTransferByIdOnce(transferId) ?: return
-        val response = FileResponseMessage(
-            senderId   = preferencesManager.getDeviceUuid(),
-            transferId = transferId,
-            accepted   = false,
-            reason     = reason
-        )
         fileTransferRepository.markAsFailed(transferId, reason ?: "Rejected by user")
-        connectionManager.sendMessage(transfer.peerId, response)
+        core.sendReject(transfer.peerId, transferId, reason)
     }
 
     private suspend fun handleLiveFileOffer(senderId: String, offer: FileOfferMessage) {
@@ -317,7 +297,7 @@ class LiveTransferManager @Inject constructor(
         if (transfer.messageId != null) return
 
         if (response.accepted) {
-            engine.setPeerDataPort(transfer.id, response.dataPort)
+            core.onAccepted(transfer.id, response.dataPort)
             fileTransferRepository.markAsStarted(transfer.id, TransferStatus.ACTIVE)
 
             // Send files sequentially — start with the first pending file
@@ -438,9 +418,7 @@ class LiveTransferManager @Inject constructor(
         }
         activeTransferIds.remove(transferId)
         lastDbWrite.remove(transferId)
-        statsTracker.remove(transferId)
-        engine.releaseTransfer(transferId)
-        fileTransferRepository.markAsFailed(transferId, message)
+        core.fail(transferId, message)
         _transferEvents.emit(TransferEvent.Failed(transferId, message))
     }
 

@@ -225,9 +225,6 @@ class ConnectionManager @Inject constructor(
         val myId = preferencesManager.getDeviceUuid()
 
         return when (message) {
-            is PairRequestMessage        -> message.copy(senderId = myId)
-            is PairResponseMessage       -> message.copy(senderId = myId)
-            is UnpairMessage             -> message.copy(senderId = myId)
             is HeartbeatMessage          -> message.copy(senderId = myId)
             is ChatMessage               -> message.copy(senderId = myId)
             is MessageReceiptMessage     -> message.copy(senderId = myId)

@@ -82,7 +82,6 @@ class NearbyViewModel @Inject constructor(
                         profileImage = device.profileImage,
                         ipAddress = device.ipAddress,
                         tcpPort = device.port,
-                        pairingState = com.ipphone.domain.model.PairingState.NONE,
                         createdAt = System.currentTimeMillis()
                     )
                 )

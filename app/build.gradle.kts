@@ -135,6 +135,10 @@ dependencies {
     implementation(libs.webrtc)
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
 
+    // QR code: generate the Wi-Fi QR (ZXing core) and scan it (Google code scanner, no camera permission)
+    implementation("com.google.zxing:core:3.5.3")
+    implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
+
     // Logging
     implementation(libs.timber)
 

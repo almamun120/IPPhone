@@ -23,7 +23,7 @@ import com.ipphone.data.local.database.entity.UserEntity
         CallLogEntity::class,
         SyncQueueEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 abstract class IPPhoneDatabase : RoomDatabase() {

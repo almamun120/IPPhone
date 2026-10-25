@@ -24,6 +24,11 @@ class MessageRepositoryImpl @Inject constructor(
             .map { entities -> entities.map { it.toDomain() } }
     }
     
+    override fun getRecentMessages(conversationId: String, limit: Int): Flow<List<Message>> {
+        return messageDao.getRecentMessages(conversationId, limit)
+            .map { entities -> entities.map { it.toDomain() } }
+    }
+
     override suspend fun getMessageById(messageId: String): Message? {
         return messageDao.getMessageById(messageId)?.toDomain()
     }

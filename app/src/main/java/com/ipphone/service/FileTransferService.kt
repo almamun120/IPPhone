@@ -120,7 +120,15 @@ class FileTransferService : Service() {
             .build()
     }
 
+    // Android drops/rate-limits notifications posted faster than ~1/s, so update at most once a second.
+    private val lastNotificationUpdate = java.util.concurrent.ConcurrentHashMap<String, Long>()
+
     private fun updateProgressNotification(transferId: String, transferred: Long, total: Long) {
+        val now = android.os.SystemClock.elapsedRealtime()
+        val last = lastNotificationUpdate[transferId] ?: 0L
+        if (now - last < 1000L && transferred < total) return
+        lastNotificationUpdate[transferId] = now
+
         val progress = if (total > 0) ((transferred.toFloat() / total) * 100).toInt() else 0
         val stats = statsTracker.stats.value[transferId]
         val details = if (stats != null && stats.speedBps > 0) {

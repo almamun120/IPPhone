@@ -19,6 +19,18 @@ interface MessageDao {
     """)
     fun getMessagesForConversation(conversationId: String): Flow<List<MessageEntity>>
 
+    /** The newest [limit] messages of a conversation, returned oldest-first (uses the composite index). */
+    @Query("""
+        SELECT * FROM (
+            SELECT * FROM messages 
+            WHERE conversation_id = :conversationId 
+            AND (is_deleted = 0 OR deleted_for != 'ME')
+            ORDER BY created_at DESC
+            LIMIT :limit
+        ) ORDER BY created_at ASC
+    """)
+    fun getRecentMessages(conversationId: String, limit: Int): Flow<List<MessageEntity>>
+
     @Query("""
         SELECT * FROM messages 
         WHERE conversation_id = :conversationId 
