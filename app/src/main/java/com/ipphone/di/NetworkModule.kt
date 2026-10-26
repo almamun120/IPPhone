@@ -85,13 +85,15 @@ object NetworkModule {
         connectionManager: ConnectionManager,
         callRepository: com.ipphone.domain.repository.CallRepository,
         userRepository: com.ipphone.domain.repository.UserRepository,
-        preferencesManager: PreferencesManager
+        preferencesManager: PreferencesManager,
+        peerAvailability: com.ipphone.network.presence.PeerAvailability
     ): CallManager = CallManager(
         context,
         connectionManager,
         callRepository,
         userRepository,
-        preferencesManager
+        preferencesManager,
+        peerAvailability
     )
 
     @Provides
