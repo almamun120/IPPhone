@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -33,8 +34,17 @@ fun DialpadScreen(
     val uiState by viewModel.uiState.collectAsState()
     val digits = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#")
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(uiState.message) {
+        uiState.message?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.messageShown()
+        }
+    }
+
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Direct IP Call") }) }
+        topBar = { TopAppBar(title = { Text("Direct IP Call") }) },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -66,6 +76,14 @@ fun DialpadScreen(
                         }
                     }
                 }
+            }
+
+            if (uiState.isChecking) {
+                LinearProgressIndicator(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp)
+                )
             }
 
             // Dialpad Grid
@@ -103,12 +121,21 @@ fun DialpadScreen(
                 Text(
                     text = "Action for ${uiState.digits}",
                     style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    modifier = Modifier.padding(bottom = if (uiState.peerOnline) 16.dp else 4.dp)
                 )
+                if (!uiState.peerOnline) {
+                    Text(
+                        text = "This device is offline — you can only open the chat history.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                }
 
                 ActionItem(
                     icon = Icons.Default.Phone,
                     label = "Audio Call",
+                    enabled = uiState.peerOnline,
                     onClick = {
                         viewModel.dismissOptions()
                         // FIX: Navigate using targetId (resolved UUID) not raw digits
@@ -118,6 +145,7 @@ fun DialpadScreen(
                 ActionItem(
                     icon = Icons.Default.Videocam,
                     label = "Video Call",
+                    enabled = uiState.peerOnline,
                     onClick = {
                         viewModel.dismissOptions()
                         navController.navigate(Screen.Call.createRoute(targetId, "VIDEO"))
@@ -134,6 +162,7 @@ fun DialpadScreen(
                 ActionItem(
                     icon = Icons.Default.AttachFile,
                     label = "File Transfer",
+                    enabled = uiState.peerOnline,
                     onClick = {
                         viewModel.dismissOptions()
                         navController.navigate(Screen.FileManager.createRoute(targetId))
@@ -179,11 +208,15 @@ fun DialpadButton(
 fun ActionItem(
     icon: ImageVector,
     label: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    enabled: Boolean = true
 ) {
     Surface(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth()
+        enabled = enabled,
+        modifier = Modifier
+            .fillMaxWidth()
+            .alpha(if (enabled) 1f else 0.4f)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),

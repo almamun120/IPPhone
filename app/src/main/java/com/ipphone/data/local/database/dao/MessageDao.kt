@@ -19,6 +19,9 @@ interface MessageDao {
     """)
     fun getMessagesForConversation(conversationId: String): Flow<List<MessageEntity>>
 
+    @Query("SELECT EXISTS(SELECT 1 FROM messages WHERE conversation_id = :conversationId)")
+    suspend fun hasMessages(conversationId: String): Boolean
+
     /** The newest [limit] messages of a conversation, returned oldest-first (uses the composite index). */
     @Query("""
         SELECT * FROM (

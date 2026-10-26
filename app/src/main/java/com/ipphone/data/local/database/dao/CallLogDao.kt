@@ -17,6 +17,9 @@ interface CallLogDao {
     @Query("SELECT * FROM call_logs WHERE peer_id = :peerId ORDER BY created_at DESC")
     fun getCallLogsForPeer(peerId: String): Flow<List<CallLogEntity>>
     
+    @Query("SELECT EXISTS(SELECT 1 FROM call_logs WHERE peer_id = :peerId AND status != 'FAILED')")
+    suspend fun hasCalls(peerId: String): Boolean
+
     @Query("SELECT * FROM call_logs WHERE id = :callId")
     suspend fun getCallById(callId: String): CallLogEntity?
     

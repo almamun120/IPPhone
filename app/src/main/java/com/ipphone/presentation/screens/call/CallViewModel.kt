@@ -36,6 +36,7 @@ data class CallUiState(
 @HiltViewModel
 class CallViewModel @Inject constructor(
     private val callManager: CallManager,
+    private val peerAvailability: com.ipphone.network.presence.PeerAvailability,
     private val userRepository: UserRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
@@ -72,11 +73,13 @@ class CallViewModel @Inject constructor(
                 when (state) {
                     is CallManager.CallState.Connected -> {
                         startDurationTimer(state.startTime)
-                        // Auto-enable speaker for video calls
-                        if (!_uiState.value.isSpeaker && state.callType == CallType.VIDEO) {
-                            val speaker = callManager.toggleSpeaker()
-                            _uiState.update { it.copy(isSpeaker = speaker) }
-                        }
+                        // CallManager already switched video calls to the loudspeaker
+                        // (toggling here used to switch it off again) — just mirror the real state.
+                        _uiState.update { it.copy(isSpeaker = callManager.isSpeakerOn()) }
+                    }
+                    is CallManager.CallState.Outgoing,
+                    is CallManager.CallState.Connecting -> {
+                        _uiState.update { it.copy(isSpeaker = callManager.isSpeakerOn()) }
                     }
                     is CallManager.CallState.Ended,
                     CallManager.CallState.Idle -> {
@@ -166,6 +169,21 @@ class CallViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
+                // Gate first: if the peer is not reachable nothing at all is started — no
+                // foreground service, microphone, camera, call log or contact entry.
+                if (!peerAvailability.isOnline(userId)) {
+                    val known = userRepository.getUserByIdOnce(userId)
+                    _uiState.update {
+                        it.copy(
+                            peerName             = known?.deviceName ?: userId,
+                            profileImage         = known?.profileImage,
+                            hasCallBeenInitiated = true
+                        )
+                    }
+                    callManager.reportUnavailable()
+                    return@launch
+                }
+
                 val user = userRepository.getUserByIdOnce(userId)
                 _uiState.update {
                     it.copy(

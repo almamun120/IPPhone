@@ -54,7 +54,8 @@ class CallManager @Inject constructor(
     private val connectionManager: ConnectionManager,
     private val callRepository: CallRepository,
     private val userRepository: UserRepository,
-    private val preferencesManager: PreferencesManager
+    private val preferencesManager: PreferencesManager,
+    private val peerAvailability: com.ipphone.network.presence.PeerAvailability
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val stateMutex = Mutex()
@@ -91,6 +92,7 @@ class CallManager @Inject constructor(
 
     @Volatile private var isCleanedUp = false
     private var iceRestartAttempted = false
+    private var videoSpeakerApplied = false
 
     // Thread-safe ICE candidate queue
     private val iceCandidateQueue = CopyOnWriteArrayList<IceCandidate>()
@@ -472,6 +474,12 @@ class CallManager @Inject constructor(
                     PeerConnection.IceConnectionState.CONNECTED,
                     PeerConnection.IceConnectionState.COMPLETED -> {
                         iceFailureRetryJob?.cancel()
+                        // Video calls start on the loudspeaker; re-assert it once the call is
+                        // really connected (some phones reset the route when media starts).
+                        if (currentCallType == CallType.VIDEO && !videoSpeakerApplied) {
+                            videoSpeakerApplied = true
+                            applySpeaker(true)
+                        }
                         val startTime = System.currentTimeMillis()
                         callStartTime = startTime
                         _callState.value = CallState.Connected(
@@ -619,8 +627,16 @@ class CallManager @Inject constructor(
         if (current !is CallState.Idle && current !is CallState.Ended)
             throw IllegalStateException("Already in a call")
 
-        val callId = UUID.randomUUID().toString()
         val resolvedPeerId = resolveToUuid(peerId)
+
+        // Not reachable → do NOT touch audio, camera, peer connection, call log or contacts.
+        if (!peerAvailability.isOnline(resolvedPeerId)) {
+            Timber.w("startCall: $resolvedPeerId is not available — nothing initialised")
+            reportUnavailable()
+            return ""
+        }
+
+        val callId = UUID.randomUUID().toString()
 
         Timber.d("startCall: peer=$resolvedPeerId callType=$callType")
 
@@ -636,7 +652,8 @@ class CallManager @Inject constructor(
         }
 
         audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
-        audioManager.isSpeakerphoneOn = (callType == CallType.VIDEO)
+        videoSpeakerApplied = false
+        applySpeaker(callType == CallType.VIDEO)
 
         _callState.value = CallState.Outgoing(resolvedPeerId, callType)
 
@@ -819,7 +836,8 @@ class CallManager @Inject constructor(
     suspend fun acceptCall() {
         ringTimeoutJob?.cancel()
         audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
-        audioManager.isSpeakerphoneOn = (currentCallType == CallType.VIDEO)
+        videoSpeakerApplied = false
+        applySpeaker(currentCallType == CallType.VIDEO)
 
         addLocalTracks()
         _callState.value = CallState.Connecting(
@@ -1027,7 +1045,8 @@ class CallManager @Inject constructor(
             _localVideoTrackState.value = null
 
             audioManager.mode = AudioManager.MODE_NORMAL
-            audioManager.isSpeakerphoneOn = false
+            applySpeaker(false)
+            videoSpeakerApplied = false
         } catch (e: Exception) {
             Timber.e(e, "cleanup error")
         }
@@ -1097,9 +1116,48 @@ class CallManager @Inject constructor(
     }
 
     fun toggleSpeaker(): Boolean {
-        val on = !audioManager.isSpeakerphoneOn
-        audioManager.isSpeakerphoneOn = on
+        val on = !isSpeakerOn()
+        applySpeaker(on)
         return on
+    }
+
+    /** True while the loudspeaker is the active audio output. */
+    fun isSpeakerOn(): Boolean =
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            audioManager.communicationDevice?.type == android.media.AudioDeviceInfo.TYPE_BUILTIN_SPEAKER
+        } else {
+            @Suppress("DEPRECATION")
+            audioManager.isSpeakerphoneOn
+        }
+
+    /** Android 12+ needs setCommunicationDevice(); older versions use isSpeakerphoneOn. */
+    private fun applySpeaker(on: Boolean) {
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                if (on) {
+                    val speaker = audioManager.availableCommunicationDevices
+                        .firstOrNull { it.type == android.media.AudioDeviceInfo.TYPE_BUILTIN_SPEAKER }
+                    if (speaker != null) {
+                        audioManager.setCommunicationDevice(speaker)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        audioManager.isSpeakerphoneOn = true
+                    }
+                } else {
+                    audioManager.clearCommunicationDevice()
+                }
+            } else {
+                @Suppress("DEPRECATION")
+                audioManager.isSpeakerphoneOn = on
+            }
+        } catch (e: Exception) {
+            Timber.w(e, "applySpeaker($on) failed")
+        }
+    }
+
+    /** The peer cannot be reached: show "not available" without initialising any media. */
+    fun reportUnavailable(reason: String = "User not available") {
+        _callState.value = CallState.Ended(reason)
     }
 
     fun toggleCamera(): Boolean {
